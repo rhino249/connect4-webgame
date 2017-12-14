@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Connect4</title>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/processing.js/1.6.0/processing.min.js"></script>
+<link rel="stylesheet" type="text/css" href="style.css">
+        <link href="https://fonts.googleapis.com/css?family=Libre+Franklin:300|Open+Sans" rel="stylesheet">
+	</head>
+	<body>
+<div class="column">
+        <h1>Connect4</h1>
+        <p>Play connect four.</p>
+ 
+		<script type="application/processing">
+			Grid grid;
+Player player1;
+Player player2;
+boolean over;
+Button btn;
+Label label;
+void setup() {
+  size(310, 250);
+  over = false;
+  grid = new Grid(30, 30, 7, 6, 30);
+  player1 = new Player(color(255, 240, 0));
+  player1.setToMove(true);
+  player2 = new Player(color(250, 0, 0));
+  label = new Label(10, 20);
+  btn = new Button(260, 196);
+}
+void draw() {
+  
+  background(180);
+  grid.display();
+  player1.displayCoins();
+  player2.displayCoins();
+  label.display();
+  if (over) {
+    btn.display();
+  }
+}
+void changeTurns() {
+  player1.inverseToMove();
+  player2.inverseToMove();
+}
+void mouseClicked() {
+  if (grid.winner() == null) {
+    Column selectedColumn = grid.getSelectedColumn();
+    if (selectedColumn != null) {
+      Cell freeCell = selectedColumn.getNextCell();
+      if (freeCell != null) {
+        if (player1.getToMove()) {  
+          player1.dropCoin(freeCell);
+          changeTurns();
+        } else {
+          player2.dropCoin(freeCell);
+          changeTurns();
+        }
+      }
+    }
+  } 
+  if (grid.winner() != null) {
+    String winner = "";
+    if (player1 == grid.winner()) {
+      winner = "Player 1";
+    } else if (player2 == grid.winner()) {
+      winner = "Player 2";
+    }
+    String msg = "Congrats " + winner + "! You win!";
+    label.setMsg(msg);
+    over = true;
+  }
+  if (over && btn.mouseInside()) {
+    setup();
+  }
+}
+
+
+public class Player {
+  private boolean toMove;
+  private ArrayList<Coin> coins;
+  private color c;
+  public Player(color c) {
+    coins = new ArrayList<Coin>();
+    this.c = c;
+  }
+  public void setToMove(boolean toMove) {
+    this.toMove = toMove;
+  }
+  public boolean getToMove() {
+    return toMove;
+  }
+  public void inverseToMove() {
+    toMove = !toMove;
+  }
+  public void dropCoin(Cell cell) {
+    coins.add(new Coin(c, cell));
+    cell.setOccupant(this);
+    
+  }
+  public void displayCoins() {
+    for (Coin coin : coins) {
+      coin.display();
+    }
+  }
+}
+
+
+public class Label {
+  private int x;
+  private int y;
+  private String msg;
+  public Label(int x, int y) {
+    this.x = x;
+    this.y = y;
+    this.msg = "";
+  }
+  public void setMsg(String msg) {
+    this.msg = msg;
+  }
+  public void display() {
+    fill(20);
+    text(msg, x, y);
+  }
+}
+
+public class Grid {
+  private int columns;
+  private int rows;
+  private int cellSize;
+  private int x;
+  private int y;
+  private Cell[][] cells;
+  private Column[] c;
+  private ArrayList<Checker> checkers;
+  public Grid(int x, int y, int columns, int rows, int cellSize) {
+    this.columns = columns;
+    this.rows = rows;
+    this.x = x;
+    this.y = y;
+    this.cellSize = cellSize;
+    cells = new Cell[columns][rows];
+    addColumns();
+    checkers = new ArrayList<Checker>();
+    addCheckers();
+  }
+  public Player winner() {
+    for (Checker checker : checkers) {
+      if (checker.check() != null) {
+        Player winner = checker.check();
+        return winner;
+      }
+    }
+    return null;
+  }
+  private void addCheckers() {
+    addVerticalCheckers();
+    addHorizontalCheckers();
+    addDiagonalCheckers();
+  }
+  private void addVerticalCheckers() {
+    for (int column = 0; column < cells.length; column++) {
+      for (int row = 3; row < cells[column].length; row++) {
+        Cell[] fourCells = {cells[column][row], cells[column][row-1], cells[column][row-2], cells[column][row-3]};
+        checkers.add(new Checker(fourCells));
+      }
+    }
+  }
+  private void addDiagonalCheckers() {
+    //bottom left to top right
+    for (int column = 0; column < cells.length-3; column++) {
+      for (int row = 3; row < cells[column].length; row++) {
+        Cell[] fourCells = {cells[column][row], cells[column+1][row-1], cells[column+2][row-2], cells[column+3][row-3]};
+        checkers.add(new Checker(fourCells));
+      }
+    }
+    //bottom right to top left
+    for (int column = 3; column < cells.length; column++) {
+      for (int row = 3; row < cells[column].length; row++) {
+        Cell[] fourCells = {cells[column][row], cells[column-1][row-1], cells[column-2][row-2], cells[column-3][row-3]};
+        checkers.add(new Checker(fourCells));
+      }
+    }
+  }
+  private void addHorizontalCheckers() {
+    for (int column = 0; column < cells.length-3; column++) {
+      for (int row = 0; row < cells[column].length; row++) {
+        Cell[] fourCells = {cells[column][row], cells[column+1][row], cells[column+2][row], cells[column+3][row]};
+        checkers.add(new Checker(fourCells));
+      }
+    }
+  }
+  private void addColumns() {
+    c = new Column[columns];
+    for (int i = 0; i < c.length; i++) {
+      c[i] = new Column(x+cellSize*i, y, rows, cellSize);
+      cells[i] = c[i].getCells();
+    }
+  }
+  public Column getSelectedColumn() {
+    for (int i = 0; i < c.length; i++) {
+      if (c[i].mouseInside()) {
+        return c[i];
+      }
+    }
+    return null;
+  }
+  public void display() {
+    noFill();
+    rect(x, y, cellSize*columns, cellSize*rows);
+    for (int i = 0; i < c.length; i++) {
+      c[i].display();
+    }
+  }
+}
+
+public class Column {
+  private int cellSize;
+  private int x;
+  private int y;
+  private int h;
+  private Cell[] cells;
+  public Column(int x, int y, int rows, int cellSize) {
+    this.x = x;
+    this.y = y;
+    this.cellSize = cellSize;
+    this.h = cellSize*rows;
+    cells = new Cell[rows];
+    for (int i = 0; i < cells.length; i++) {
+      cells[i] = new Cell(x, y + i*cellSize, cellSize);
+    }
+  }
+  public Cell[] getCells() {
+    return cells;
+  }
+  public Cell getNextCell() {
+    for (int i = cells.length-1; i >= 0; i--) {
+      if (cells[i].getOccupant() == null) {
+        return cells[i];
+      }
+    }
+    return null;
+  }
+  
+  public boolean mouseInside() {
+    if (mouseX >= x && mouseX <= x+cellSize && mouseY >= y && mouseY <= y+h) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+  public void display() {
+    fill(140);
+    rect(x, y, cellSize, h);
+    for (int i = 0; i < cells.length; i++) {
+      cells[i].display();
+    }
+  }
+}
+
+public class Coin {
+  private int x;
+  private int y;
+  private int size;
+  private color c;
+  public Coin(color c, Cell cell) {
+    this.size = cell.getSize() /3*2;
+    this.x = cell.getX() + cell.getSize()/2;
+    this.y = cell.getY() + cell.getSize()/2;
+    this.c = c;
+  }
+  public void display() {
+    fill(c);
+    noStroke();
+    ellipse(x, y, size, size);
+  }
+}
+
+public class Checker {
+  private Cell[] cells;
+  public Checker(Cell[] cells) {
+    this.cells = cells;
+  }
+  public Player check() {
+    int connectedCells = 1;
+    Player occupant = cells[0].getOccupant();
+    for (int i = 1; i < cells.length; i++) {
+        if (cells[i].getOccupant() != null && occupant != null) {
+                if (occupant.equals(cells[i].getOccupant())) {
+                    connectedCells++;
+                }
+            }
+    }
+    if (connectedCells == cells.length) {
+        return occupant;
+    }
+    return null;
+  }
+}
+
+public class Cell {
+  private int size;
+  private int x;
+  private int y;
+  private Player occupant;
+  public Cell(int x, int y, int size) {
+    this.x = x;
+    this.y = y;
+    this.size = size;
+  }
+  public int getSize() {
+    return size;
+  }
+  public int getX() {
+    return x;
+  }
+  public int getY() {
+    return y;
+  }
+  public void setOccupant(Player occupant) {
+    this.occupant = occupant;
+  }
+  public Player getOccupant() {
+    return occupant;
+  }
+  public void display() {
+    fill(220);
+    stroke(100);
+    rect(x, y, size, size);
+  }
+}
+
+public class Button {
+  private int x;
+  private int y;
+  public Button(int x, int y) {
+    this.x = x;
+    this.y = y;
+  }
+  public void display() {
+    fill(220);
+    ellipse(x, y, 32, 32);
+    stroke(100);
+    arc(x, y, 16, 16, 0, PI+QUARTER_PI);
+    line(x+8, y, x+3, y+3);
+    line(x+8, y, x+10, y+5);
+  }
+  public boolean mouseInside() {
+    if (dist(x, y, mouseX, mouseY) < 16) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
+
+
+		</script>
+		<canvas> </canvas>
+<p class="link">Get the uml <a href="uml.html">here</a></p>
+        </div>
+
+	</body>
+</html>

@@ -1,0 +1,30 @@
+html {
+    background-color: #fff;
+    color: #484848;
+    font-size: 16px;
+    text-rendering: optimizeLegibility;
+    
+    
+}
+.column {
+    max-width: 1140px;
+    margin: 0 auto;
+    margin-top: 65px;
+}
+.colum img {
+    width: 100vh;
+    height: auto;
+    display: block;
+    
+}
+.link {
+    font-size: 14px;
+}
+
+h1 {
+    font-family: 'Libre Franklin', sans-serif;
+}
+p {
+    font-family: 'Open Sans', sans-serif;
+    max-width: 900px;
+}
